@@ -51,6 +51,17 @@ class RemediatorTests(unittest.TestCase):
         with self.assertRaisesRegex(remediator.RemediationError, "no Critical or High"):
             remediator.analyze(report, self.repository)
 
+    def test_stale_report_is_rejected(self):
+        report = Path(self.temp.name) / "stale.json"
+        report.write_text(json.dumps({"scanner": "TEST", "findings": [{
+            "id": "CVE-STALE", "severity": "HIGH",
+            "package": "org.apache.commons:commons-compress",
+            "currentVersion": "0.0.1", "fixedVersion": "1.26.2",
+            "module": "orders-api"
+        }]}), encoding="utf-8")
+        with self.assertRaisesRegex(remediator.RemediationError, "Stale report"):
+            remediator.analyze(report, self.repository)
+
 
 if __name__ == "__main__":
     unittest.main()

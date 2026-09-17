@@ -147,6 +147,7 @@ def locate_change(repository: Path, finding: Finding) -> ChangePlan:
 
     if declared_version:
         old = _resolve_version(repository / "pom.xml", declared_version)
+        _verify_report_version(finding, old)
         return ChangePlan(finding, "child", declaring_pom, old,
                           finding.fixed_version,
                           _property_reference(declared_version))
@@ -157,6 +158,7 @@ def locate_change(repository: Path, finding: Finding) -> ChangePlan:
         raise RemediationError(f"No managed version found for {finding.package}")
     property_name = _property_reference(managed_version)
     old = _resolve_version(root_pom, managed_version)
+    _verify_report_version(finding, old)
     return ChangePlan(finding, "parent", root_pom, old,
                       finding.fixed_version, property_name)
 
@@ -176,6 +178,13 @@ def _declares_without_version(pom: Path, group_id: str, artifact_id: str) -> boo
 def _property_reference(value: str) -> str | None:
     match = re.fullmatch(r"\$\{([^}]+)}", value.strip())
     return match.group(1) if match else None
+
+
+def _verify_report_version(finding: Finding, actual_version: str) -> None:
+    if actual_version != finding.current_version:
+        raise RemediationError(
+            f"Stale report for {finding.package}: report says {finding.current_version}, "
+            f"but the POM currently resolves to {actual_version}")
 
 
 def _resolve_version(root_pom: Path, value: str) -> str:
@@ -341,6 +350,8 @@ def remediate(report_path: Path, repository: Path, *, skip_validation: bool = Fa
     repository = repository.resolve()
     scanner, plans = analyze(report_path, repository)
     ensure_clean_repository(repository)
+    if not skip_validation:
+        validation_command(repository)  # Fail before branching if Maven is unavailable.
     slug = re.sub(r"[^a-z0-9]+", "-", plans[0].finding.identifier.lower()).strip("-")
     stamp = dt.datetime.now().strftime("%Y%m%d%H%M%S")
     branch = f"remediation/{slug}-{stamp}"
