@@ -74,11 +74,11 @@ Do not commit tokens. The token is read only from `GITHUB_TOKEN`.
   "scanner": "NEXUS",
   "repository": "vulnerable-java-platform",
   "findings": [{
-    "id": "CVE-2024-25710",
+    "id": "CVE-2021-44228",
     "severity": "CRITICAL",
-    "package": "org.apache.commons:commons-compress",
-    "currentVersion": "1.26.0",
-    "fixedVersion": "1.26.2",
+    "package": "org.apache.logging.log4j:log4j-core",
+    "currentVersion": "2.14.1",
+    "fixedVersion": "2.17.1",
     "module": "orders-api",
     "description": "Optional scanner description",
     "advisoryUrl": "https://example.invalid/advisory"
@@ -102,7 +102,7 @@ python -m unittest discover -s tests -v
 
 ## Demo flow
 
-1. Show `orders-api` without a dependency version and the root managed property at `1.26.0`.
+1. Show `orders-api` without a dependency version and the root managed Log4j property at `2.14.1`.
 2. Analyze `nexus-parent-report.json`; show that the agent selects the root POM.
 3. Remediate; show the branch, Maven validation, and commit.
 4. Push/open the human-reviewed PR after GitHub is configured.

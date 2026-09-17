@@ -27,7 +27,7 @@ class RemediatorTests(unittest.TestCase):
         self.assertEqual("parent", plans[0].owner)
         self.assertEqual(self.repository / "pom.xml", plans[0].file)
         remediator.apply_change(plans[0])
-        self.assertIn("<commons-compress.version>1.26.2</commons-compress.version>",
+        self.assertIn("<log4j.version>2.17.1</log4j.version>",
                       plans[0].file.read_text(encoding="utf-8"))
 
     def test_child_override_is_changed_without_touching_parent(self):
@@ -37,7 +37,7 @@ class RemediatorTests(unittest.TestCase):
         self.assertEqual("PRISMA", scanner)
         self.assertEqual("child", plans[0].owner)
         remediator.apply_change(plans[0])
-        self.assertIn("<version>1.26.2</version>",
+        self.assertIn("<version>1.26.0</version>",
                       plans[0].file.read_text(encoding="utf-8"))
         self.assertEqual(parent_before, (self.repository / "pom.xml").read_text(encoding="utf-8"))
 
@@ -55,8 +55,8 @@ class RemediatorTests(unittest.TestCase):
         report = Path(self.temp.name) / "stale.json"
         report.write_text(json.dumps({"scanner": "TEST", "findings": [{
             "id": "CVE-STALE", "severity": "HIGH",
-            "package": "org.apache.commons:commons-compress",
-            "currentVersion": "0.0.1", "fixedVersion": "1.26.2",
+            "package": "org.apache.logging.log4j:log4j-core",
+            "currentVersion": "0.0.1", "fixedVersion": "2.17.1",
             "module": "orders-api"
         }]}), encoding="utf-8")
         with self.assertRaisesRegex(remediator.RemediationError, "Stale report"):
