@@ -321,9 +321,11 @@ def github_location(repository: Path) -> tuple[str, str]:
 
 def open_github_pr(repository: Path, branch: str, base: str,
                    title: str, body: str) -> str:
-    token = os.environ.get("GITHUB_TOKEN")
+    token = _github_token()
     if not token:
-        raise RemediationError("GITHUB_TOKEN is required to open a pull request")
+        raise RemediationError(
+            "GitHub authentication is required. Run 'git credential-manager github login' "
+            "or set GITHUB_TOKEN for the current terminal")
     owner, repo = github_location(repository)
     request = urllib.request.Request(
         f"https://api.github.com/repos/{owner}/{repo}/pulls",
@@ -343,6 +345,23 @@ def open_github_pr(repository: Path, branch: str, base: str,
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         raise RemediationError(f"GitHub API returned {exc.code}: {detail}") from exc
+
+
+def _github_token() -> str | None:
+    """Read a token from the environment or Git Credential Manager without logging it."""
+    if token := os.environ.get("GITHUB_TOKEN"):
+        return token
+    result = subprocess.run(
+        ["git", "credential", "fill"],
+        input="protocol=https\nhost=github.com\n\n",
+        text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+    )
+    if result.returncode:
+        return None
+    for line in result.stdout.splitlines():
+        if line.startswith("password="):
+            return line.removeprefix("password=")
+    return None
 
 
 def remediate(report_path: Path, repository: Path, *, skip_validation: bool = False,

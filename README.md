@@ -51,14 +51,13 @@ After creating your GitHub account:
 
 1. Create two empty repositories named `security-remediation-agent` and `vulnerable-java-platform`.
 2. Add each GitHub repository as the `origin` remote of the matching local repository and push `main`.
-3. Create a fine-grained token limited to `vulnerable-java-platform` with **Contents: read/write** and **Pull requests: read/write**.
-4. Set it only for the current terminal:
+3. Authenticate securely with Git Credential Manager:
 
 ```powershell
-$env:GITHUB_TOKEN = "your-token"
+git credential-manager github login
 ```
 
-5. Run with `--open-pr`:
+4. Run with `--open-pr`:
 
 ```powershell
 ./run.ps1 remediate `
@@ -67,7 +66,7 @@ $env:GITHUB_TOKEN = "your-token"
   --open-pr
 ```
 
-Do not commit tokens. The token is read only from `GITHUB_TOKEN`.
+The agent reuses the credential stored by Git Credential Manager. `GITHUB_TOKEN` remains available for CI environments, but never commit or paste tokens into chat or source files.
 
 ## Report contract
 
@@ -93,10 +92,12 @@ The MVP trusts the scanner-provided fixed version and supports direct Maven depe
 ## Tests
 
 ```powershell
-./run.ps1 --help
+./test-all.ps1
 ```
 
-Developer test command (using an available Python executable):
+This runs the agent unit tests, validates both Spring Boot modules, and analyzes both sample findings without changing repository files.
+
+Developer-only unit test command:
 
 ```powershell
 python -m unittest discover -s tests -v
