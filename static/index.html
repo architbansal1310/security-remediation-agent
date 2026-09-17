@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Remedy — Security Remediation Agent</title>
+  <style>
+    :root { --ink:#10231d; --muted:#63746e; --paper:#f2f5ed; --card:#fffef8; --green:#12664f; --lime:#c9f46b; --orange:#f08a5d; --line:#d9dfd5; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:radial-gradient(circle at 85% 5%,#d7f6c8 0,transparent 28%),var(--paper); font:15px/1.5 Inter,Segoe UI,sans-serif; }
+    header,main { max-width:1120px; margin:auto; }
+    header { padding:54px 24px 28px; display:flex; justify-content:space-between; align-items:end; gap:24px; }
+    .eyebrow { text-transform:uppercase; letter-spacing:.16em; font-size:12px; font-weight:800; color:var(--green); }
+    h1 { font:700 clamp(38px,6vw,72px)/.98 Georgia,serif; letter-spacing:-.04em; margin:8px 0 14px; max-width:760px; }
+    header p { color:var(--muted); max-width:650px; margin:0; }
+    .badge { background:var(--ink); color:white; border-radius:99px; padding:9px 14px; white-space:nowrap; }
+    main { padding:16px 24px 64px; display:grid; grid-template-columns:360px 1fr; gap:20px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:18px; box-shadow:0 18px 45px #19352a0d; }
+    .controls { padding:24px; align-self:start; }
+    label { display:block; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin:18px 0 7px; }
+    input { width:100%; padding:12px 13px; border:1px solid var(--line); border-radius:10px; background:white; color:var(--ink); }
+    .actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:22px; }
+    button { border:0; border-radius:10px; padding:12px 15px; font-weight:800; cursor:pointer; }
+    button.primary { background:var(--green); color:white; }
+    button.secondary { background:var(--lime); color:var(--ink); }
+    button:disabled { opacity:.5; cursor:wait; }
+    .hint { margin-top:18px; padding:12px; border-left:3px solid var(--orange); color:var(--muted); font-size:13px; }
+    .result { padding:24px; min-height:470px; }
+    .result-head { display:flex; justify-content:space-between; gap:16px; align-items:center; border-bottom:1px solid var(--line); padding-bottom:18px; }
+    h2 { font:700 25px Georgia,serif; margin:0; }
+    .status { border-radius:99px; background:#e7ece8; padding:6px 11px; font-size:12px; font-weight:800; text-transform:uppercase; }
+    .status.good { background:var(--lime); }
+    .status.bad { background:#ffd4c5; }
+    .empty { color:var(--muted); display:grid; place-items:center; min-height:330px; text-align:center; }
+    .metric-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:20px 0; }
+    .metric { border:1px solid var(--line); border-radius:12px; padding:14px; }
+    .metric strong { font:700 24px Georgia,serif; display:block; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th,td { text-align:left; padding:11px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+    th { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.06em; }
+    code { background:#edf0eb; padding:2px 5px; border-radius:4px; }
+    pre { background:var(--ink); color:#d9f7e8; padding:15px; border-radius:12px; max-height:210px; overflow:auto; white-space:pre-wrap; font-size:12px; }
+    @media(max-width:800px){ header{align-items:start;flex-direction:column} main{grid-template-columns:1fr}.badge{display:none} }
+  </style>
+</head>
+<body>
+  <header>
+    <div><div class="eyebrow">Continuous risk reduction</div><h1>Vulnerabilities in.<br>Validated fixes out.</h1><p>Trace vulnerable Maven dependencies to their owning POM, apply the smallest safe change, validate it, and prepare a human-reviewed pull request.</p></div>
+    <div class="badge">Human approval required</div>
+  </header>
+  <main>
+    <section class="card controls">
+      <div class="eyebrow">Remediation run</div>
+      <label for="repo">Target repository path</label>
+      <input id="repo" placeholder="C:\path\to\vulnerable-java-platform">
+      <label for="report">Scanner report path</label>
+      <input id="report" placeholder="C:\path\to\report.json">
+      <div class="actions"><button class="secondary" onclick="run('analyze')">Analyze</button><button class="primary" onclick="run('remediate')">Remediate</button></div>
+      <div class="hint"><strong>Safety:</strong> Remediation requires a clean Git repository, creates a dedicated branch, runs Maven verification, and never merges automatically.</div>
+    </section>
+    <section class="card result">
+      <div class="result-head"><h2>Run evidence</h2><span id="status" class="status">Waiting</span></div>
+      <div id="content" class="empty">Select a scanner report and target repository to inspect the proposed security changes.</div>
+    </section>
+  </main>
+  <script>
+    const $ = id => document.getElementById(id);
+    async function run(action) {
+      const buttons=[...document.querySelectorAll('button')]; buttons.forEach(b=>b.disabled=true);
+      $('status').textContent=action==='analyze'?'Analyzing':'Running'; $('status').className='status';
+      $('content').innerHTML='<div class="empty">Tracing Maven ownership and evaluating the remediation path…</div>';
+      try {
+        const response=await fetch('/api/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({repositoryPath:$('repo').value,reportPath:$('report').value})});
+        const data=await response.json(); render(data,response.ok);
+      } catch(error) { render({status:'error',message:error.message},false); }
+      finally { buttons.forEach(b=>b.disabled=false); }
+    }
+    function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
+    function render(data,ok){
+      $('status').textContent=data.status||'complete'; $('status').className='status '+(ok?'good':'bad');
+      if(!ok){$('content').innerHTML='<div class="empty"><div><strong>Run could not continue</strong><br>'+esc(data.message)+'</div></div>';return;}
+      const changes=data.changes||[]; const validation=data.validation;
+      $('content').innerHTML=`<div class="metric-grid"><div class="metric"><span>Scanner</span><strong>${esc(data.scanner)}</strong></div><div class="metric"><span>Findings</span><strong>${changes.length}</strong></div><div class="metric"><span>Validation</span><strong>${validation?(validation.passed?'Pass':'Fail'):'Planned'}</strong></div></div>
+      <table><thead><tr><th>Finding</th><th>Dependency</th><th>Upgrade</th><th>Owner / file</th></tr></thead><tbody>${changes.map(c=>`<tr><td><strong>${esc(c.findingId)}</strong><br>${esc(c.severity)}</td><td><code>${esc(c.package)}</code><br>${esc(c.module)}</td><td>${esc(c.currentVersion)} → <strong>${esc(c.fixedVersion)}</strong></td><td>${esc(c.owner)}<br><code>${esc(c.file)}</code></td></tr>`).join('')}</tbody></table>
+      ${data.branch?`<p><strong>Branch:</strong> <code>${esc(data.branch)}</code></p>`:''}${data.pullRequestUrl?`<p><a href="${esc(data.pullRequestUrl)}">Open pull request</a></p>`:''}${validation?`<pre>${esc(validation.output||'Validation skipped')}</pre>`:''}`;
+    }
+  </script>
+</body>
+</html>

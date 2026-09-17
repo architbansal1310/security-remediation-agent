@@ -1,0 +1,16 @@
+{
+  "scanner": "NEXUS",
+  "repository": "vulnerable-java-platform",
+  "findings": [
+    {
+      "id": "CVE-2024-25710",
+      "severity": "CRITICAL",
+      "package": "org.apache.commons:commons-compress",
+      "currentVersion": "1.26.0",
+      "fixedVersion": "1.26.2",
+      "module": "orders-api",
+      "description": "Demo finding affecting the dependency managed by the root POM.",
+      "advisoryUrl": "https://nvd.nist.gov/vuln/detail/CVE-2024-25710"
+    }
+  ]
+}
