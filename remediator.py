@@ -255,14 +255,24 @@ def ensure_clean_repository(repository: Path) -> None:
 def validation_command(repository: Path) -> list[str]:
     override = os.environ.get("MAVEN_EXECUTABLE")
     if override:
-        return [override, "--batch-mode", "--no-transfer-progress", "verify"]
+        return _maven_command(Path(override))
     wrapper = repository / ("mvnw.cmd" if os.name == "nt" else "mvnw")
     if wrapper.is_file():
-        return [str(wrapper), "--batch-mode", "--no-transfer-progress", "verify"]
+        return _maven_command(wrapper)
     executable = shutil.which("mvn")
     if executable:
-        return [executable, "--batch-mode", "--no-transfer-progress", "verify"]
+        return _maven_command(Path(executable))
     raise RemediationError("Maven is unavailable. Install Maven or set MAVEN_EXECUTABLE")
+
+
+def _maven_command(executable: Path) -> list[str]:
+    arguments = [str(executable), "--batch-mode", "--no-transfer-progress", "verify"]
+    if os.name == "nt" and executable.suffix.lower() in {".cmd", ".bat"}:
+        command_interpreter = os.environ.get("COMSPEC") or shutil.which("cmd.exe")
+        if not command_interpreter:
+            raise RemediationError("Windows command interpreter cmd.exe is unavailable")
+        return [command_interpreter, "/d", "/c", *arguments]
+    return arguments
 
 
 def validate(repository: Path) -> dict[str, Any]:

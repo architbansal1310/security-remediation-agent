@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -35,6 +36,8 @@ class RemediatorTests(unittest.TestCase):
     <version>1.25.0</version>
   </dependency></dependencies>
 </project>""", encoding="utf-8")
+        (self.repository / "mvnw.cmd").write_text("@echo off\r\n", encoding="utf-8")
+        (self.repository / "mvnw").write_text("#!/bin/sh\n", encoding="utf-8")
 
     def tearDown(self):
         self.temp.cleanup()
@@ -80,6 +83,15 @@ class RemediatorTests(unittest.TestCase):
         }]}), encoding="utf-8")
         with self.assertRaisesRegex(remediator.RemediationError, "Stale report"):
             remediator.analyze(report, self.repository)
+
+    def test_validation_command_is_platform_compatible(self):
+        command = remediator.validation_command(self.repository)
+        if os.name == "nt":
+            self.assertIn("cmd", Path(command[0]).stem.lower())
+            self.assertIn("/c", command)
+            self.assertTrue(any(part.endswith("mvnw.cmd") for part in command))
+        else:
+            self.assertTrue(command[0].endswith("mvnw"))
 
 
 if __name__ == "__main__":

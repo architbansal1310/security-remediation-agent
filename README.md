@@ -170,7 +170,7 @@ The MVP trusts the scanner-provided fixed version and supports direct Maven depe
 ./test-all.ps1
 ```
 
-This runs four Python worker tests, 13 Java tests, the REST service's JaCoCo 70% coverage gate, both target Spring Boot modules, and both sample analyses without changing tracked files. The current measured Java line coverage is 93.4%; the HTML report is generated at `target/site/jacoco/index.html`.
+This runs five Python worker tests, 13 Java tests, the REST service's JaCoCo 70% coverage gate, both target Spring Boot modules, and both sample analyses without changing tracked files. The current measured Java line coverage is 93.4%; the HTML report is generated at `target/site/jacoco/index.html`.
 
 ## Deliverables
 
