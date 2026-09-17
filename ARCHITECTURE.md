@@ -1,5 +1,36 @@
 # Architecture and Production Evolution
 
+## One-page before/after: legacy batch flow to REST service
+
+### Before — passive, manual batch remediation
+
+```mermaid
+flowchart LR
+    A[Nightly scanner exports] --> B[Spreadsheets and ticket backlog]
+    B --> C[Security team manually triages]
+    C --> D[Developer investigates dependency ownership]
+    D --> E[Developer edits POM and reruns tests]
+    E --> F[Manually created pull request]
+    F --> G[Long queue and inconsistent evidence]
+```
+
+### After — policy-driven REST decision plus automated execution
+
+```mermaid
+flowchart LR
+    A[Prisma / Nexus / scanner adapter] --> B[POST /api/v1/remediations]
+    B --> C{Eligibility and duplicate policy}
+    C -->|Rejected| D[Structured 4xx response and evidence]
+    C -->|Approved| E[Remediation worker]
+    E --> F[Trace parent or child ownership]
+    F --> G[Branch and minimal POM update]
+    G --> H[Maven build, tests, quality checks]
+    H --> I[GitHub pull request]
+    I --> J[Human review and merge]
+```
+
+The REST service makes prioritization synchronous, testable, and reusable by any scanner adapter. The worker keeps repository mutation isolated from policy decisions, while GitHub Actions and human review remain the final safety gates.
+
 ## MVP boundary
 
 The hackathon implementation deliberately supports one reliable golden path: normalized Critical/High findings for directly declared Maven dependencies. It proves ingestion, prioritization, version ownership, safe modification, validation, Git branching, and human-reviewed pull-request preparation.

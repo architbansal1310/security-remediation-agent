@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-import shutil
 import tempfile
 import unittest
 
@@ -8,14 +7,34 @@ import remediator
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TARGET = ROOT.parent / "vulnerable-java-platform"
-
-
 class RemediatorTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.repository = Path(self.temp.name) / "target"
-        shutil.copytree(TARGET, self.repository)
+        (self.repository / "orders-api").mkdir(parents=True)
+        (self.repository / "payments-api").mkdir(parents=True)
+        (self.repository / "pom.xml").write_text("""<?xml version="1.0"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <properties><log4j.version>2.14.1</log4j.version></properties>
+  <dependencyManagement><dependencies><dependency>
+    <groupId>org.apache.logging.log4j</groupId><artifactId>log4j-core</artifactId>
+    <version>${log4j.version}</version>
+  </dependency></dependencies></dependencyManagement>
+</project>""", encoding="utf-8")
+        (self.repository / "orders-api" / "pom.xml").write_text("""<?xml version="1.0"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion><dependencies><dependency>
+    <groupId>org.apache.logging.log4j</groupId><artifactId>log4j-core</artifactId>
+  </dependency></dependencies>
+</project>""", encoding="utf-8")
+        (self.repository / "payments-api" / "pom.xml").write_text("""<?xml version="1.0"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion><dependencies><dependency>
+    <groupId>org.apache.commons</groupId><artifactId>commons-compress</artifactId>
+    <version>1.25.0</version>
+  </dependency></dependencies>
+</project>""", encoding="utf-8")
 
     def tearDown(self):
         self.temp.cleanup()

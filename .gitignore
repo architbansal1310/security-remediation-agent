@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 remediation-result.json
+target/
+.idea/
+*.iml

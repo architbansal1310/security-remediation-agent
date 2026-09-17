@@ -1,0 +1,61 @@
+{
+  "info": {
+    "_postman_id": "5e57787f-c825-4c39-93c1-3bcd74c3b5fe",
+    "name": "Automated Security Vulnerability Remediation Agent",
+    "description": "REST decision-service examples for approved, duplicate, ineligible, invalid, and dataset requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [{"key":"baseUrl","value":"http://localhost:8081"}],
+  "item": [
+    {
+      "name": "1 - Approved Critical remediation",
+      "request": {
+        "method": "POST",
+        "header": [{"key":"Content-Type","value":"application/json"}],
+        "body": {"mode":"raw","raw":"{\n  \"findingId\": \"CVE-2021-44228\",\n  \"repository\": \"vulnerable-java-platform\",\n  \"requestedFixedVersion\": \"2.17.1\"\n}"},
+        "url": {"raw":"{{baseUrl}}/api/v1/remediations","host":["{{baseUrl}}"],"path":["api","v1","remediations"]}
+      },
+      "event": [{"listen":"test","script":{"exec":["pm.test('Created', () => pm.response.to.have.status(201));","pm.test('Approved', () => pm.expect(pm.response.json().status).to.eql('APPROVED'));"],"type":"text/javascript"}}]
+    },
+    {
+      "name": "2 - Duplicate remediation",
+      "request": {
+        "method": "POST",
+        "header": [{"key":"Content-Type","value":"application/json"}],
+        "body": {"mode":"raw","raw":"{\n  \"findingId\": \"CVE-2021-44228\",\n  \"repository\": \"vulnerable-java-platform\",\n  \"requestedFixedVersion\": \"2.17.1\"\n}"},
+        "url": {"raw":"{{baseUrl}}/api/v1/remediations","host":["{{baseUrl}}"],"path":["api","v1","remediations"]}
+      },
+      "event": [{"listen":"test","script":{"exec":["pm.test('Conflict', () => pm.response.to.have.status(409));"],"type":"text/javascript"}}]
+    },
+    {
+      "name": "3 - Ineligible Medium finding",
+      "request": {
+        "method": "POST",
+        "header": [{"key":"Content-Type","value":"application/json"}],
+        "body": {"mode":"raw","raw":"{\n  \"findingId\": \"CVE-DEMO-0006\",\n  \"repository\": \"reporting-api\",\n  \"requestedFixedVersion\": \"2.2\"\n}"},
+        "url": {"raw":"{{baseUrl}}/api/v1/remediations","host":["{{baseUrl}}"],"path":["api","v1","remediations"]}
+      },
+      "event": [{"listen":"test","script":{"exec":["pm.test('Not eligible', () => pm.response.to.have.status(422));"],"type":"text/javascript"}}]
+    },
+    {
+      "name": "4 - Invalid request",
+      "request": {
+        "method": "POST",
+        "header": [{"key":"Content-Type","value":"application/json"}],
+        "body": {"mode":"raw","raw":"{}"},
+        "url": {"raw":"{{baseUrl}}/api/v1/remediations","host":["{{baseUrl}}"],"path":["api","v1","remediations"]}
+      },
+      "event": [{"listen":"test","script":{"exec":["pm.test('Bad request', () => pm.response.to.have.status(400));"],"type":"text/javascript"}}]
+    },
+    {
+      "name": "5 - List sample findings",
+      "request": {"method":"GET","header":[],"url":{"raw":"{{baseUrl}}/api/v1/findings","host":["{{baseUrl}}"],"path":["api","v1","findings"]}},
+      "event": [{"listen":"test","script":{"exec":["pm.test('Twenty records', () => { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.have.lengthOf(20); });"],"type":"text/javascript"}}]
+    },
+    {
+      "name": "6 - Health check",
+      "request": {"method":"GET","header":[],"url":{"raw":"{{baseUrl}}/actuator/health","host":["{{baseUrl}}"],"path":["actuator","health"]}},
+      "event": [{"listen":"test","script":{"exec":["pm.test('Healthy', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql('UP'); });"],"type":"text/javascript"}}]
+    }
+  ]
+}

@@ -4,6 +4,11 @@ Hackathon-ready reference implementation that turns normalized Prisma/Nexus-styl
 
 Companion target repository: [vulnerable-java-platform](https://github.com/architbansal1310/vulnerable-java-platform)
 
+The solution has two intentionally separated runtime components:
+
+- A Java 21/Spring Boot REST decision service with DTO, Controller, Service, Repository, validation, structured errors, and a 20-record dataset.
+- A dependency-free Python execution worker that performs Maven ownership analysis, branch creation, validation, commits, pushes, and pull requests.
+
 ## What the MVP demonstrates
 
 - Ingests Critical and High findings from JSON reports.
@@ -17,7 +22,81 @@ Companion target repository: [vulnerable-java-platform](https://github.com/archi
 - Pushes and opens a GitHub PR only when explicitly requested.
 - Never merges automatically.
 
-The implementation uses only Python's standard library, Git, Java 21, and Maven. `vulnerable-java-platform` is the intentionally vulnerable target repository.
+The implementation uses Python's standard library, Git, Java 21, Spring Boot, and Maven. `vulnerable-java-platform` is the intentionally vulnerable target repository.
+
+## Build and run the REST service
+
+```powershell
+./mvnw.cmd clean verify
+./mvnw.cmd spring-boot:run
+```
+
+The API runs at `http://localhost:8081`. Verify it with:
+
+```powershell
+Invoke-RestMethod http://localhost:8081/actuator/health
+```
+
+Expected response:
+
+```json
+{"status":"UP"}
+```
+
+## REST API
+
+### `POST /api/v1/remediations`
+
+Validates and approves one remediation request. Approval is idempotent by finding and repository for the lifetime of the service process.
+
+Example request:
+
+```http
+POST http://localhost:8081/api/v1/remediations
+Content-Type: application/json
+
+{
+  "findingId": "CVE-2021-44228",
+  "repository": "vulnerable-java-platform",
+  "requestedFixedVersion": "2.17.1"
+}
+```
+
+Approved response — HTTP `201 Created`:
+
+```json
+{
+  "requestId": "generated-uuid",
+  "status": "APPROVED",
+  "findingId": "CVE-2021-44228",
+  "repository": "vulnerable-java-platform",
+  "dependency": "org.apache.logging.log4j:log4j-core",
+  "severity": "CRITICAL",
+  "currentVersion": "2.14.1",
+  "fixedVersion": "2.17.1",
+  "versionOwner": "parent",
+  "message": "Eligible finding approved for branch creation, validation, and human-reviewed PR"
+}
+```
+
+Error behavior:
+
+| Condition | Status |
+|---|---:|
+| Invalid or missing fields | 400 |
+| Unknown finding | 404 |
+| Duplicate remediation | 409 |
+| Ineligible severity, repository, or fixed version | 422 |
+
+### `GET /api/v1/findings`
+
+Returns all 20 mock scanner findings used by the demo.
+
+### `GET /actuator/health`
+
+Returns application readiness and liveness information.
+
+Import [the Postman collection](postman/Security-Remediation-Agent.postman_collection.json) to execute six prepared requests with assertions.
 
 ## Quick start
 
@@ -45,19 +124,15 @@ CLI remediation:
   --repo ../vulnerable-java-platform
 ```
 
-## GitHub setup
+## GitHub and live pull requests
 
-After creating your GitHub account:
-
-1. Create two empty repositories named `security-remediation-agent` and `vulnerable-java-platform`.
-2. Add each GitHub repository as the `origin` remote of the matching local repository and push `main`.
-3. Authenticate securely with Git Credential Manager:
+The public repositories are already configured. Authenticate securely with Git Credential Manager when running from a new machine:
 
 ```powershell
 git credential-manager github login
 ```
 
-4. Run with `--open-pr`:
+Run with `--open-pr`:
 
 ```powershell
 ./run.ps1 remediate `
@@ -95,7 +170,22 @@ The MVP trusts the scanner-provided fixed version and supports direct Maven depe
 ./test-all.ps1
 ```
 
-This runs the agent unit tests, validates both Spring Boot modules, and analyzes both sample findings without changing repository files.
+This runs four Python worker tests, 13 Java tests, the REST service's JaCoCo 70% coverage gate, both target Spring Boot modules, and both sample analyses without changing tracked files. The current measured Java line coverage is 93.4%; the HTML report is generated at `target/site/jacoco/index.html`.
+
+## Deliverables
+
+| Checklist item | Location |
+|---|---|
+| Filled problem template and idea | `Problem.md` |
+| Build/run, API docs, examples | `README.md` |
+| Before/after architecture | `ARCHITECTURE.md` |
+| Significant prompt log | `PROMPTS.md` |
+| Phased plan and done checks | `PLAN.md` |
+| Layered Java source | `src/main/java` |
+| Unit and controller tests | `src/test/java` |
+| Postman collection | `postman/Security-Remediation-Agent.postman_collection.json` |
+| 20-record dataset | `samples/mock-findings.json` |
+| Execution worker | `remediator.py` and `server.py` |
 
 Developer-only unit test command:
 
