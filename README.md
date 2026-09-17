@@ -2,6 +2,8 @@
 
 Hackathon-ready reference implementation that turns normalized Prisma/Nexus-style findings into validated Maven remediation commits and optional GitHub pull requests.
 
+Companion target repository: [vulnerable-java-platform](https://github.com/architbansal1310/vulnerable-java-platform)
+
 ## What the MVP demonstrates
 
 - Ingests Critical and High findings from JSON reports.
